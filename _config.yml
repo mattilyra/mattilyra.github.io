@@ -10,9 +10,6 @@ title: Ei se toimi!
 email: matti.lyra@gmail.com
 description: > # this means to ignore newlines until "baseurl:"
   python, spark, AI and possibly other things
-  <a href="http://stackoverflow.com/users/100190/matti-lyra">
-    <img src="http://stackoverflow.com/users/flair/100190.png" width="208" height="58" alt="Matti Lyra at Stack Overflow, Q&amp;A for professional and enthusiast programmers" title="profile for Matti Lyra at Stack Overflow, Q&amp;A for professional and enthusiast programmers">
-  </a>
 baseurl: ""
 url: "https://mattilyra.github.io"
 twitter_username: mattilyra
