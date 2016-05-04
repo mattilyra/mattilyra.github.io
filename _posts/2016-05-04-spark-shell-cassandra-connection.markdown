@@ -1,6 +1,6 @@
 ---
 layout: post
-title: The Correct Way to Connect to Cassandra in Spark Shell
+title: The Correct Way to Connect Spark Shell to Cassandra
 published: true
 ---
 
