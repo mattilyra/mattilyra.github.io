@@ -4,6 +4,8 @@ title: There's nothing quite like Neural Networks
 published: true
 ---
 
+[Slides](https://nbviewer.jupyter.org/github/mattilyra/notebooks/blob/master/pydata-hackathon-report.ipynb)
+
 The slides for my short presentation on failing to use neural networks presented at PyData Berlin (19.10.2016). The aim was to continue the Felix Biessmann's work at a PyData Berlin hackevent by applying neural networks to the same datasets the Felix had already analysed using other machine learning methods. For some background on Felix's work on detecting political bias in text see his talk at the PyData Berlin 2016 conference [youtube](https://www.youtube.com/watch?v=IhUSiXXg4rg).
 
 - [keras.io](http://keras.io)
@@ -18,7 +20,6 @@ The slides for my short presentation on failing to use neural networks presented
 - [WildML](http://wildml.com)
 - [deeplearning.net CNN](http://deeplearning.net/tutorial/lenet.html)
 
-[Slides](https://nbviewer.jupyter.org/github/mattilyra/notebooks/blob/master/pydata-hackathon-report.ipynb)
 
 
 ----
