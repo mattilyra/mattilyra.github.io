@@ -14,6 +14,7 @@ The slides for my short presentation on failing to use neural networks presented
   - [arxiv](http://arxiv.org/abs/1509.01626)
   - [github](https://github.com/zhangxiangxiao/Crepe)
   - [Notes by Adriaan Schakel (PDF)](asserts/nextstep.pdf) - published under his permission
+  - [Discussion on how to implement the model in keras](https://github.com/fchollet/keras/issues/233)
 - Convolutional Neural Networks for Text Classifiation (Kim, EMNLP 2014)
   - [arxiv](https://arxiv.org/abs/1408.5882)
   - [github](https://github.com/yoonkim/CNN_sentence)
