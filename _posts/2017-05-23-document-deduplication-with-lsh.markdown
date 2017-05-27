@@ -40,8 +40,8 @@ Now that we know where near duplicated come from and how they differ from docume
 The method relies on two simple concepts, character shingles and the Jaccard similarity. 'Shingle' is a term that comes from roofing and refers to partially overlapping pieces of clay, stone, wood, asphalt or some such bits of roofing material.
 
 <figure class="center">
-  <img src="{{ site.url }}/assets/610px-Heinola_paanukatto.jpg" alt="Wooden roof shingles" />
-  <figcaption>Wooden roof shingles on an old Church roof in Finland.</figcaption>
+  <img src="{{ site.url }}/assets/610px-Heinola_paanukatto.jpg" alt="Wooden roof shingles" style="margin: auto" />
+  <figcaption>Wooden roof shingles on an old Church roof in Finland. By <a href="//commons.wikimedia.org/wiki/User:Htm" title="User:Htm">Htm</a> - <span class="int-own-work" lang="en">Own work</span>, <a href="http://creativecommons.org/licenses/by-sa/3.0" title="Creative Commons Attribution-Share Alike 3.0">CC BY-SA 3.0</a>, <a href="https://commons.wikimedia.org/w/index.php?curid=26964156">Link</a></figcaption>
 </figure>
 
 The idea for character shingles is similar, create a document representation of consecutive overlapping character n-grams from each document. "Cat sat on the mat", when 4-shingled becomes (`'The '`, `'he c'`, `'e ca'`, `' cat'`, ... ,`'at.'`). Notice that punctuation and whitespace are all part of the process. This represenatation preserves word order, to some extent, and allows comparing documents based on the sets of character shingles. The similarity of those documents can then simply be defined as the Jaccard similarity of the two sets of shingles; the number of elements (shingles) they have in common as a proportion of the combined size of the two sets, or the size of the intersection divided by the size of the union. 
