@@ -124,9 +124,9 @@ This should all be fine however, as we've already defined the task to be about f
 
 # A Real World Example 
 
-### Deduplicating the Reuters RCV1 corpus [1]
+### Deduplicating the Reuters RCV1 corpus
 
-The Reuters Corpus, Volume 1 (RCV1) corpus is a commonly used resource for various NLP tasks, especially document classification. It was made available in 2000 by Reuters Ltd. and consists of ~800,000 english language news stories collected between August 20th 1996 and August 19th 1997 from the Reuters news wire.
+The [Reuters Corpus, Volume 1](http://trec.nist.gov/data/reuters/reuters.html) (RCV1) corpus is a commonly used resource for various NLP tasks, especially document classification. It was made available in 2000 by Reuters Ltd. and consists of ~800,000 english language news stories collected between August 20th 1996 and August 19th 1997 from the Reuters news wire.
 
 I've preprocessed the corpus so that it is all in a single file, one line per document. Each line has the format:
 
