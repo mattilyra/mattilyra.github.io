@@ -142,11 +142,10 @@ I've preprocessed the corpus so that it is all in a single file, one line per do
 
 
 ```python
-!head -1 /usr/local/scratch/data/rcv1/headline.text.txt
+!head -1 /usr/local/scratch/data/rcv1/headline.text.txt | cut -c -100
 ```
 
-    2286	Recovery excitement brings Mexican markets to life.  Emerging evidence that Mexico's economy was back on the recovery track sent Mexican markets into a buzz of excitement Tuesday, with stocks closing at record highs and interest rates at 19-month lows. "Mexico has been trying to stage a recovery since the beginning of this year and it's always been getting ahead of itself in terms of fundamentals," said Matthew Hickman of Lehman Brothers in New York. "Now we're at the point where the fundamentals are with us. The history is now falling out of view." That history is one etched into the minds of all investors in Mexico: an economy in crisis since December 1994, a free-falling peso and stubbornly high interest rates. This week, however, second-quarter gross domestic product was reported up 7.2 percent, much stronger than most analysts had expected. Interest rates on governent Treasury bills, or Cetes, in the secondary market fell on Tuesday to 23.90 percent, their lowest level since Jan. 25, 1995. The stock market's main price index rallied 77.12 points, or 2.32 percent, to a record 3,401.79 points, with volume at a frenzied 159.89 million shares. Confounding all expectations has been the strength of the peso, which ended higher in its longer-term contracts on Tuesday despite the secondary Cetes drop and expectations of lower benchmark rates in Tuesday's weekly auction. With U.S. long-term interest rates expected to remain steady after the Federal Reserve refrained from raising short-term rates on Tuesday, the attraction of Mexico, analysts say, is that it offers robust returns for foreigners and growing confidence that they will not fall victim to a crumbling peso. "The focus is back on Mexican fundamentals," said Lars Schonander, head of researcher at Santander in Mexico City. "You have a continuing decline in inflation, a stronger-than-expected GDP growth figure and the lack of any upward move in U.S. rates." Other factors were also at play, said Felix Boni, head of research at James Capel in Mexico City, such as positive technicals and economic uncertainty in Argentina, which has put it and neighbouring Brazil's markets at risk. "There's a movement out of South American markets into Mexico," he said. But Boni was also wary of what he said could be "a lot of hype." The economic recovery was still export-led, and evidence was patchy that the domestic consumer was back with a vengeance. Also, corporate earnings need to grow strongly to justify the run-up in the stock market, he said. 
-
+    2286	Recovery excitement brings Mexican markets to life.  Emerging evidence that Mexico's economy wa
 
 Some duplicate items are present in the corpus so let's see what happens when we apply the shingling with Jaccard similarity method to the corpus.
 
@@ -438,30 +437,152 @@ plt.legend(list(df.loc[ix[100]].index),
   <figcaption>Impact of parameter settings for LSH and minhash on the probability of discovering duplicate documents.</figcaption>
 </figure>
 
-The naive pure `python` implementation is quite slow and not really usable in production. I've made a much more robust implementation that utilizes `cython` and `murmurhash` for very fast and memory efficient creation of the document fingerprints, the implementation is freely available on github at [https://github.com/mattilyra/LSH](https://github.com/mattilyra/LSH).
+The figure shows the probability that LSH with `minhash` will "find" a pair of similar documents (`y-axis`) given the Jaccard similarity (`x-axis`) of those documents for different settings for LSH. Each of the five lines correspond to different settings, the number of hashes is always 100 so we're just changing the number of pieces to chop each fingerprint into (and the size of those pieces, although that becomes determined by setting the number of hashes).
 
-Here is what the document deduplication routine would look like using the `LSH` library with default settings.
+Creating just two pieces with 50 rows each - that is two localities, each with a size of 50 `minhash`es - yields an LSH model (the blue line) that tries really really hard not to find documents to be similar. This LSH model will find 80% of documents whose actual Jaccard similarity is over 95%. Documents whose Jaccard similarity is 80% will hardly ever be found to be similar.
+
+Creating 5 pieces with 20 rows (the green line) each is slightly more relaxed. The above graph should give you a pretty good idea how to set the parameters for your use case so that you can be reasonably certain that LSH will generate acceptable candidate pairs.
+
+Now let's return to the RCV1 corpus and see how well we can expect LSH to work. First let's just see how many candidate pairs different settings for LSH produce.
 
 ```python
-import lsh
-from lsh import minhash
+def candidate_duplicates(document_feed, char_ngram=5, seeds=100, bands=5, hashbytes=4):
+    char_ngram = 5
+    sims = []
+    hasher = minhash.MinHasher(seeds=seeds, char_ngram=char_ngram, hashbytes=hashbytes)
+    if seeds % bands != 0:
+	    raise ValueError('Seeds has to be a multiple of bands. {} % {} != 0'.format(seeds, bands))
 
-# create a fingerprint of each document using
-# - 100 minhashes
-# - character ngrams of 5 characters
-# - a hash space of 32 bits (this impacts the probability of hash collisions)
-hasher = minhash.MinHasher(seeds=100, char_ngram=5, hashbytes=4)
+    lshcache = cache.Cache(num_bands=bands, hasher=hasher)
+    for i_line, line in enumerate(document_feed):
+	    line = line.decode('utf8')
+	    docid, headline_text = line.split('\t', 1)
+	    fingerprint = hasher.fingerprint(headline_text.encode('utf8'))
+		
+	    # in addition to storing the fingerpring store the line
+	    # number and document ID to help analysis later on
+	    lshcache.add_fingerprint(fingerprint, doc_id=(i_line, docid))
 
-# create the LSH cache
-cache = lsh.Cache(bands=10, hasher=hasher)
+    candidate_pairs = set()
+    for b in lshcache.bins:
+	    for bucket_id in b:
+		    if len(b[bucket_id]) > 1:
+			    pairs_ = set(itertools.combinations(b[bucket_id], r=2))
+			    candidate_pairs.update(pairs_)
+
+    return candidate_pairs
+
+
+num_candidates = []
+bands = [2, 5, 10, 20]
+for num_bands in bands:
+    with open('/usr/local/scratch/data/rcv1/headline.text.txt', 'rb') as fh:
+	    feed = itertools.islice(fh, 1000)
+	    candidates = candidate_duplicates(feed, char_ngram=5, seeds=100, bands=num_bands, hashbytes=4)
+	    num_candidates.append(len(candidates))
+
+fig, ax = plt.subplots(figsize=(8, 6))
+plt.bar(bands, num_candidates, align='center');
+plt.title('Number of candidate duplicate pairs found by LSH using 100 minhash fingerprint.');
+plt.xlabel('Number of bands');
+plt.ylabel('Number of candidate duplicates');
+plt.xticks(bands, bands);
+```
+
+<figure class="center">
+  <img src="{{ site.url }}/assets/LSH-minhash_files/LSH-minhash_24_0.png" alt="" style="margin: auto"/>
+  <figcaption>Effect of the number of bands for LSH on the number of candidate pairs found.</figcaption>
+</figure>
+
+The more [promiscuous][@promiscuous] version (20 bands per fingerprint) finds many more candidate pairs than the conservative 2 bands model. The first implication of this difference is that it leads to you having to do more comparisons to find the real duplicates. Let's see what that looks like in practice.
+
+```python
+lines = []
 with open('/usr/local/scratch/data/rcv1/headline.text.txt', 'rb') as fh:
-    feed = itertools.islice(fh, 100)
-    for line in feed:
-        doc_id, doc = line.split('\t', 1)
-        if not cache.is_duplicate(line):
-            cache.add_doc(line)
-        else:
-            duplicates = cache.get_duplicates_of(doc)
-            print(f'Document {doc_id} has {len(duplicates)} duplicates.')
+    # read the first 1000 lines into memory so we can compare them
+    for line in itertools.islice(fh, 1000):
+        lines.append(line.decode('utf8'))
+    
+    # reset file pointer and do LSH
+    fh.seek(0)
+    feed = itertools.islice(fh, 1000)
+    candidates = candidate_duplicates(feed, char_ngram=5, seeds=100, bands=20, hashbytes=4)
+
+# go over all the generated candidates comparing their similarities
+similarities = []
+for ((line_a, docid_a), (line_b, docid_b)) in candidates:
+    doc_a, doc_b = lines[line_a], lines[line_b]
+    shingles_a = shingles(lines[line_a])
+    shingles_b = shingles(lines[line_b])
+    
+    jaccard_sim = jaccard(shingles_a, shingles_b)
+    fingerprint_a = set(hasher.fingerprint(doc_a.encode('utf8')))
+    fingerprint_b = set(hasher.fingerprint(doc_b.encode('utf8')))
+    minhash_sim = len(fingerprint_a & fingerprint_b) / len(fingerprint_a | fingerprint_b)
+    similarities.append((docid_a, docid_b, jaccard_sim, minhash_sim))
+```
+
+```python
+import random
+
+print('There are {} candidate duplicates in total'.format(len(candidates)))
+random.sample(similarities, k=15)
+```
+```
+[('2317', '2293', 0.6090381426202321, 0.4492753623188406),
+ ('2544', '2403', 0.8514745308310991, 0.7094017094017094),
+ ('2742', '2387', 0.6901698404529079, 0.4925373134328358),
+ ('2306', '2940', 0.4451428571428571, 0.26582278481012656),
+ ('2506', '2507', 0.996265172735761, 1.0),
+ ('2335', '2536', 0.8379651436646255, 0.7241379310344828),
+ ('2361', '2315', 0.7490176817288802, 0.5748031496062992),
+ ('2311', '2372', 0.7974055703929798, 0.7241379310344828),
+ ('2302', '2971', 0.576, 0.5151515151515151),
+ ('2910', '2857', 0.9893048128342246, 0.941747572815534),
+ ('2336', '2338', 0.9870317002881844, 0.9801980198019802),
+ ('2312', '2303', 0.6593059936908517, 0.45985401459854014),
+ ('2486', '2875', 0.6749619095987811, 0.5037593984962406),
+ ('2323', '2451', 0.7245482591449978, 0.5267175572519084),
+ ('3256', '3186', 0.3084023668639053, 0.11731843575418995)]
+```
+
+So LSH with 20 bands indeed finds a lot of candidate duplicates (111 out of 1000), some of which - for instance (3256, 3186) above - are not all that similar. Let's see how many LSH missed given some similarity threshold.
+
+```python
+sims_all = np.zeros((1000, 1000), dtype=np.float64)
+for i, line in enumerate(lines):
+    for j in range(i+1, len(lines)):
+        shingles_a = shingles(lines[i])
+        shingles_b = shingles(lines[j])
+        jaccard_sim = jaccard(shingles_a, shingles_b)
+        
+        # similarities are symmetric so we only care about the
+        # upper diagonal here and leave (j, i) to be 0
+        sims_all[i, j] = jaccard_sim
+```
+
+```python
+# turn the candidates into a dictionary so we have easy access to
+# candidates pairs that were found
+candidates_dict = {(line_a, line_b): (docid_a, docid_b) for ((line_a, docid_a), (line_b, docid_b)) in candidates}
+found = 0
+for i in range(len(lines)):
+    for j in range(i+1, len(lines)):
+        if sims_all[i, j] >= .9:
+            # documents i and j have an actual Jaccard similarity >= 90%
+            found += ((i, j) in candidates_dict or (j, i) in candidates_dict)
+
+print('Out of {} pairs with similarity >= 90% {} were found, that\'s {:.1%}'.format((sims_all >= .9).sum(), found, found / (sims_all >= .9).sum()))
+```
 
 ```
+Out of 27 pairs with similarity >= 90% 27 were found, that's 100.0%
+```
+
+That seems pretty well inline with the figure showing how setting bands and rows affects the probability of finding similar documents. So we're doing quite well in terms of the true positives, what about the false positives? 27 pairs of documents from the ones found were true positives, so the rest are false positives. Since LSH found 111 document pairs in total $$111-27 = 84$$ pairs were incorrect, that's 84 documents that were checked in vein in comparison to the 499000 pairs we would have had to go through for an all pairs comparison.
+
+_499000 is the number of entries on the upper diagonal of a $$1000\times1000$$ matrix. Since document similarities are symmetric we only need to compare `i` to `j` not `j` to `i`, so that's $$\frac{1000\times1000}{2}$$. We also don't need compare `i` to `i` or `j` to `j` which cuts out the last 1000 entries on the diagonal._
+
+You can find a Jupyter notebook with all the code examples in the github repository for the LSH project at [https://github.com/mattilyra/lsh](https://github.com/mattilyra/lsh)
+
+[@promiscuous]: # "promiscuous: demonstrating or implying an unselective approach; indiscriminate or casual: 'the city fathers were promiscuous with their honours.'"
