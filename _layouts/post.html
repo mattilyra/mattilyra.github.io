@@ -16,3 +16,12 @@ layout: default
   </div>
 
 </article>
+{% for js in page.customJS %}
+    {% if js contains "http" %}
+        <script src={{ js }}></script>
+    {% elsif js contains ".js" %}
+        <script type="text/javascript">
+        {% include {{ js }} %}
+        </script>
+    {% endif %}
+{% endfor %}
