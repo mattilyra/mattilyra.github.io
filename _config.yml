@@ -6,8 +6,8 @@
 # 'jekyll serve'. If you change this file, please restart the server process.
 
 # Site settings
-title: Matti Lyra
-email: 
+title: "Matti Lyra"
+email: "" 
 description: > # this means to ignore newlines until "baseurl:"
   Stupidity is making the same mistake twice. Aim for making progressively better mistakes.
 baseurl: ""
